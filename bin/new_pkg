@@ -19,6 +19,56 @@ check_same() {
 	return $st
 }
 
+# check md5sums according to download links.
+ck_dl_md(){
+	listdl=(${=1})
+	listmd=(${=2})
+	litar=()
+	vname=$3
+	for i in $(seq 1 ${#listdl}); do
+		tarball=$(basename ${listdl[$i]})
+		litar+="$tarball"
+		newmd5=$(cat $PKGDIR/$tarball | md5sum | cut -f1 -d' ')
+		if [ "${listmd[$i]}" != "$newmd5" ]; then
+			md5_error=1
+		fi
+		# always record the md5sum. If something goes wrong, we can
+		# provide the them as a whole.
+		md5s+=$newmd5"\n"
+	done
+	if [ "$md5_error" ]; then
+		echo "WARNING: info: $vname needs update (if your download link is not ended up with the name of source tarball, you can simply ignore this)"
+		echo "         Your download links and tarballs are:"
+		echo "         " ${listdl%%\\n/}
+		echo "         " ${litar/$/\\n/}
+		echo "         Please set $vname to:"
+		echo -n  ${md5s##"         "}
+	fi
+}
+
+check_ver() {
+	. $PKGDIR/$PKGNAM.info
+
+	ver_in_slb=$(sed -n -e "s/^VERSION=\(\${VERSION:-\)\{0,1\}\([^}]*\)\(}\)\{0,1\}/\2/p" \
+		$PKGDIR/$PKGNAM.SlackBuild)
+	if [ ! "$ver_in_slb" ]; then
+		{
+			echo "BUG FOUND: Could not to obtain version from $PKGDIR/$PKGNAM.SlackBuild"
+			echo "Have a look at your SlackBuild or notify Grissiom<chaos.proton@gmail>"
+			echo "for this bug. Thanks!"
+		} >&2
+		exit 3
+	fi
+	if [ "$ver_in_slb" !=  "$VERSION" ]; then
+		{
+			echo "ERROR: info: VERSION dismatch with SlackBuild."
+			echo "Set it to:" $ver_in_slb
+		} >&2
+		exit 1
+	fi
+	echo "${VERSION}"
+}
+
 check_info() {
 	. $PKGDIR/$PKGNAM.info
 
@@ -29,53 +79,13 @@ check_info() {
 		    echo "WARNING: info: $i not set"
 	done
 
-	listdl=(${=DOWNLOAD})
-	listmd=(${=MD5SUM})
-	for i in $(seq 1 ${#listdl}); do
-		tarball=$(basename ${listdl[$i]})
-		newmd5=$(cat $PKGDIR/$tarball | md5sum | cut -f1 -d' ')
-		if [ "${listmd[$i]}" != "$newmd5" ]; then
-			md5_error=1
-		fi
-		md5s=$newmd5"\n"
-	done
-	if [ "$md5_error" ]; then
-		echo "WARNING: info: MD5SUM needs update"
-		echo "Set it to: $md5s"
-		echo "(if your download link is not ended up with file names, you can simply ignore this)"
-	fi
+	ck_dl_md $DOWNLOAD $MD5SUM MD5SUM
 
 	if [ -n "$DOWNLOAD_x86_64" ]; then
-		listdl=(${=DOWNLOAD_x86_64})
-		listmd=(${=MD5SUM_x86_64})
-		for i in $(seq 1 ${#listdl[@]}); do
-			tarball=$(basename ${listdl[$i]})
-			newmd5=$(cat $PKGDIR/$tarball | md5sum | cut -f1 -d' ')
-			if [ "${listmd[$i]}" != "$newmd5" ]; then
-				md5_error=1
-			fi
-			md5s=$newmd5"\n"
-		done
-		if [ "$md5_error" ]; then
-			echo "WARNING: info: MD5SUM_x86_64 needs update"
-			echo "Set it to: $md5s"
-			echo "(if your download link is not ended up with file names, you can simply ignore this)"
-		fi
+		ck_dl_md $DOWNLOAD_x86_64 $MD5SUM_x86_64 MD5SUM_x86_64
 	fi
 
-	ver_in_slb=$(sed -n -e "s/^VERSION=\(\${VERSION:-\)\{0,1\}\([^}]*\)\(}\)\{0,1\}/\2/p" \
-		$PKGDIR/$PKGNAM.SlackBuild)
-	if [ ! "$ver_in_slb" ]; then
-		echo "BUG FOUND: Could not to obtain version from $PKGDIR/$PKGNAM.SlackBuild"
-		echo "Have a look at your SlackBuild or notify Grissiom<chaos.proton@gmail>"
-		echo "for this bug. Thanks!"
-		exit 3
-	fi
-	if [ "$ver_in_slb" !=  "$VERSION" ]; then
-		echo "ERROR: info: VERSION dismatch with SlackBuild."
-		echo "Set it to:" $ver_in_slb
-		exit 1
-	fi
+	check_ver 1>/dev/null
 }
 
 set -e
@@ -104,10 +114,16 @@ if [ -e $PKGDIR/doinst.sh ]; then
 fi
 
 # fatal check
-if check_same $PKGDIR/$PKGNAM.SlackBuild $SBO_TEMPLATES/template.SlackBuild; then
-	echo "ERROR: $PKGDIR/$PKGNAM.SlackBuild not modified?..."
+
+# not using md5sum to verify the SlackBuild because after sedding by
+# new_SlackBuild, every SlackBuild will be different. But if the dev have ever
+# edited the SlackBuild, it shouldn't have this line:
+if grep -q -e '^# REMOVE THIS ENTIRE BLOCK OF TEXT #$' $PKGDIR/$PKGNAM.SlackBuild; then
+	echo "ERROR: haven't edited $PKGDIR/$PKGNAM.SlackBuild?..."
+	echo "       Please read it carefully."
 	exit 1
 fi
+
 if [ "$(cat $PKGDIR/slack-desc | md5sum -)" = \
      "$(sed -e "s/appname:/$PKGNAM:/" $SBO_TEMPLATES/slack-desc | md5sum -)" ]; then
 	echo "ERROR: $PKGDIR/slack-desc not adjusted?..."
@@ -120,8 +136,10 @@ fi
 
 check_info
 
+ver=$(check_ver)
+
 echo
-echo "Start package the scripts:"
+echo "Start package the scripts for $PKGNAM ver: $ver:"
 if [ -r $PKGDIR/files ]; then
 	FILES=($(cat $PKGDIR/files))
 	FILES=(${FILES//#/"$PKGDIR/"})

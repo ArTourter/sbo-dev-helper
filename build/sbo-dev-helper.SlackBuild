@@ -3,7 +3,7 @@
 # Slackware build script for sbo-dev-helper
 
 PRGNAM=sbo-dev-helper
-VERSION=${VERSION:-0.0.5}
+VERSION=${VERSION:-0.0.8}
 ARCH=${ARCH:-noarch}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_gri}

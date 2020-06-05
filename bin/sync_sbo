@@ -1,0 +1,56 @@
+#!/bin/sh
+
+usage="sync_sbo [options] <pkgpath>
+
+Sync with SBo repo. Note, this will only copy files in
+SBo repo to your pkgpath. Overwrite them if needed.
+Please keep the SBo repo clean and up-to-date before
+run this script.
+
+Options:
+    -i interactively sync.(promote when overwrite)
+    -h show this help.
+"
+
+if [ $# -eq 0 -o "$1" = "-h" ]; then
+	echo "$usage"
+	exit
+fi
+
+[ -r ~/.sbo-dev-helper.cfg ] && . ~/.sbo-dev-helper.cfg
+
+if [ -z "$SBO_DIR" ]; then
+	echo "$usage"
+	echo
+	echo "Please tell me where is the local copy located with SBO_DIR variable."
+	exit 3
+fi
+
+if [ "$1" = "-i" ]; then
+	inter=1
+	shift
+else
+	inter=0
+fi
+
+for i in $*; do
+	if [ ! -d "$i" ]; then
+		continue
+	fi
+
+	pkgd=$(find "$SBO_DIR"/ -type d -name $(basename "$i"))
+
+	if [ -z "$pkgd" ]; then
+		echo "Package $i not found in SBo repo."
+		continue
+	elif [ "$inter" -eq 1 ]; then
+		echo "Will sync $i with $pkgd, are you sure?(y to comfirm)"
+		read tmp
+		if [ "$tmp" != 'y' -a "$tmp" != 'Y' ]; then
+			echo "Skip"
+			continue
+		fi
+	fi
+
+	cp -a "$pkgd"/* "$i"
+done

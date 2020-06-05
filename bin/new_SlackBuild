@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-usage="new_SlackBuild <-m your name> <-e your email> <pkgpath>
+usage="new_SlackBuild <-m your name> <-e your email> [-t template] <pkgpath>
 
 A script to establish a new SlackBuild working directory.
 
@@ -8,7 +8,10 @@ pkgpath is the target directory that holds the SlackBuild, README, slack-desc,
 info file etc. The last level of pkgpath will be the name of the package. Your
 name and email address will be setup accordingly. You can also set your mail
 add.  and name in ~/.sbo-dev-helper.cfg . See more info in
-/usr/doc/sbo-dev-helper-*/README"
+/usr/doc/sbo-dev-helper-*/README
+
+You can use -t option to specific which template(autotools, cmake, python etc.)
+to use. It will use the autotools one by default."
 
 set -e
 
@@ -16,12 +19,14 @@ set -e
 
 #TODO 1: allow set more than one pkgpath at a time.
 #but do we need that?...
-if [ $# -eq 0 -o $# -gt 5 ]; then
+if [ $# -eq 0 -o $# -gt 7 ]; then
 	echo "$usage"
 	echo
 	echo "Insufficient or excessive arguments."
 	exit 1
 fi
+
+TPLT="autotools"
 
 while [ $# -gt 0 ]; do
 	case $1 in
@@ -36,6 +41,10 @@ while [ $# -gt 0 ]; do
 		'-e' )
 		shift
 		SBO_MAIL=$1
+		;;
+		'-t' )
+		shift
+		TPLT=$1
 		;;
 		*)
 		PKGNAM=$(basename $1)
@@ -73,7 +82,7 @@ sed -e "s/<appname>/$PKGNAM/" \
     -e "s/appname/$PKGNAM/" \
     -e "s/(your name)/$SBO_NAME/" \
     -e "s/(your contact information)/<$SBO_MAIL>/" \
-    $SBO_TEMPLATES/template.SlackBuild > $PKGDIR/$PKGNAM.SlackBuild
+    $SBO_TEMPLATES/${TPLT}-template.SlackBuild > $PKGDIR/$PKGNAM.SlackBuild
 sed -e "s/\".*\"/\"\"/" \
     -e "/^PRGNAM=/s/\"\"/\"$PKGNAM\"/" \
     -e "/^MAINTAINER=/s/\"\"/\"$SBO_NAME\"/" \
