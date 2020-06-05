@@ -1,0 +1,28 @@
+#!/bin/sh
+
+[ -r ~/.sbo-dev-helver.cfg ] && . ~/.sbo-dev-helver.cfg
+
+if [ -z "$SBO_TEMPLATES" ]; then
+	echo "please tell me where are the templates located with SBO_TEMPLATES variable."
+	exit 3
+fi
+
+cd $SBO_TEMPLATES
+rm -rf new
+
+lftp -c 'mirror http://www.slackbuilds.org/templates/ new'
+
+for newf in new/*; do
+	oldf=$(basename $newf)
+	if [ "$(cat $oldf 2>/dev/null | md5sum -)" != "$(cat $newf 2>/dev/null | md5sum -)" ]; then
+		printf "\t$oldf have changed!!!\n"
+		printf "\tConsider update your SlackBuilds!\n"
+		printf "\tNew template file restored as $SBO_TEMPLATES/new/$oldf\n"
+		printf "\n"
+		dirty=1
+	else
+		rm $newf
+	fi
+done
+
+[ "$dirty" ] && exit 1

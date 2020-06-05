@@ -1,0 +1,52 @@
+#!/bin/zsh
+
+usage='diff_sbo <pkgpaths>
+
+Show diff between your working copy and the one in the official SBo repo.
+
+You can specify multiple paths at one time. Exit stat 2 means there is some
+difference between SBo and yours. Exit stat 128 means that it failed to find
+some packages or found multiple ones in SBo repo.'
+
+[ -r ~/.sbo-dev-helver.cfg ] && . ~/.sbo-dev-helver.cfg
+
+# TODO: what if the user don't have local copy of SBo?
+if [ -z "$SBO_DIR" ]; then
+	echo "please tell me where are the templates located with SBO_DIR variable."
+	exit 3
+fi
+
+if [ $# -eq 0 ]; then
+	echo "$usage"
+	exit 1
+fi
+if [ $1 = '-h' -o $1 = '--help' ]; then
+	echo "$usage"
+	exit
+fi
+
+while [ $# -ne 0 ]; do
+	PKGNAM=$(basename $1)
+	PKGDIR=$(dirname $1)
+	shift
+	SPKGDIR=($(find $SBO_DIR/ -type d -name "$PKGNAM"))
+	if [ ${#SPKGDIR} -eq 0 ]; then
+		echo "No package $PKGNAM found in $SBO_DIR"
+		echo
+		not_found=1
+	elif [ ${#SPKGDIR} -gt 1 ]; then
+		echo "More than one package named $PKGNAM found in $SBO_DIR"
+		echo "Please diff between them manually. Sorry."
+		not_found=1
+	else
+		# hope the *~ files are always backups...
+		diff -ur -x '*~' $PKGDIR/$PKGNAM $SPKGDIR/
+		[ $? -ne 0 ] && {echo; dirty=1 }
+	fi
+done
+
+if [ "$not_found" ]; then
+	exit 128
+elif [ "$dirty" ]; then
+	exit 2
+fi

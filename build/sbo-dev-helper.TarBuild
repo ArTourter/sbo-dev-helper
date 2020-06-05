@@ -1,0 +1,18 @@
+#!/bin/zsh
+# script to build a source ball from git repo.
+
+# Run it under the build/ folder.
+# This script is useless if you obtained the package from a source ball.
+
+CWD=$PWD
+
+if [ "$1" ]; then
+	tag=$1
+	tree=$1
+else
+	tag='snapshot'
+	tree=HEAD
+fi
+
+cd ..
+git archive --format=tar --prefix=sbo-dev-helper-$tag/ $tree | gzip > $CWD/sbo-dev-helper-$tag.tar.gz

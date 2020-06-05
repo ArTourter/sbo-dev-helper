@@ -1,0 +1,127 @@
+#!/bin/zsh
+#file name: new_pkg
+
+usage='new_pkg <pkgpath> [extra files to include]
+
+Create a tarball that you intent to submit to SBo.
+
+pkgpath should point to the folder that hold the SlackBuild, README,
+slack-desc, info file, etc.
+
+You can have a file named "files" under the pkgpath to tell new_pkg what extra
+files you want to include in the tarball. One file per line and the path should
+be relative to pkgpath.'
+
+check_same() {
+	[ -r $1 ] || {echo $1 "does not exist"; exit 1}
+	[ -r $2 ] || {echo $2 "does not exist"; exit 1}
+	st=$(test "$(cat "$1" | md5sum -)" = "$(cat "$2" | md5sum -)")
+	return $st
+}
+
+check_info() {
+	. $PKGDIR/$PKGNAM.info
+
+	for i in $(sed -n -e "s/\(.*\)=\"\"/\1/p" $SBO_TEMPLATES/template.info); do
+		grep -q "^$i=" $PKGDIR/$PKGNAM.info || \
+		    {echo "ERROR: info: don't have $i variable."; exit 1}
+		[ "$i" != "APPROVED" -a ! "$(eval echo $"$i")" ] && \
+		    echo "WARNING: info: $i not set"
+	done
+
+	listdl=(${=DOWNLOAD})
+	listmd=(${=MD5SUM})
+	for i in $(seq 1 ${#listdl}); do
+		tarball=$(basename ${listdl[$i]})
+		newmd5=$(cat $PKGDIR/$tarball | md5sum | cut -f1 -d' ')
+		if [ "${listmd[$i]}" != "$newmd5" ]; then
+			md5_error=1
+		fi
+		md5s=$newmd5"\n"
+	done
+	if [ "$md5_error" ]; then
+		echo "WARNING: info: MD5SUM needs update"
+		echo "Set it to: $md5s"
+		echo "(if your download link is not ended up with file names, you can simply ignore this)"
+	fi
+
+	if [ -n "$DOWNLOAD_x86_64" ]; then
+		listdl=(${=DOWNLOAD_x86_64})
+		listmd=(${=MD5SUM_x86_64})
+		for i in $(seq 1 ${#listdl[@]}); do
+			tarball=$(basename ${listdl[$i]})
+			newmd5=$(cat $PKGDIR/$tarball | md5sum | cut -f1 -d' ')
+			if [ "${listmd[$i]}" != "$newmd5" ]; then
+				md5_error=1
+			fi
+			md5s=$newmd5"\n"
+		done
+		if [ "$md5_error" ]; then
+			echo "WARNING: info: MD5SUM_x86_64 needs update"
+			echo "Set it to: $md5s"
+			echo "(if your download link is not ended up with file names, you can simply ignore this)"
+		fi
+	fi
+
+	ver_in_slb=$(sed -n -e "s/^VERSION=\(\${VERSION:-\)\{0,1\}\([^}]*\)\(}\)\{0,1\}/\2/p" \
+		$PKGDIR/$PKGNAM.SlackBuild)
+	if [ ! "$ver_in_slb" ]; then
+		echo "BUG FOUND: Could not to obtain version from $PKGDIR/$PKGNAM.SlackBuild"
+		echo "Have a look at your SlackBuild or notify Grissiom<chaos.proton@gmail>"
+		echo "for this bug. Thanks!"
+		exit 3
+	fi
+	if [ "$ver_in_slb" !=  "$VERSION" ]; then
+		echo "ERROR: info: VERSION dismatch with SlackBuild."
+		echo "Set it to:" $ver_in_slb
+		exit 1
+	fi
+}
+
+set -e
+
+[ -r ~/.sbo-dev-helver.cfg ] && . ~/.sbo-dev-helver.cfg
+
+if [ -z "$SBO_TEMPLATES" ]; then
+	echo "please tell me where are the templates located with SBO_TEMPLATES variable."
+	exit 3
+fi
+if [ -z "$1" -o "$1" = '--help' -o "$1" = '-h' ]; then
+	echo "$usage"
+	exit
+fi
+
+PKGNAM=$(basename $1)
+PKGDIR=$1
+shift
+
+if check_same $PKGDIR/$PKGNAM.SlackBuild $SBO_TEMPLATES/template.SlackBuild; then
+	echo "$PKGDIR/$PKGNAM.SlackBuild not modified?..."
+	exit 1
+fi
+if [ "$(cat $PKGDIR/slack-desc | md5sum -)" = \
+     "$(sed -e "s/appname:/$PKGNAM:/" $SBO_TEMPLATES/slack-desc | md5sum -)" ]; then
+	echo "ERROR: slack-desc: $PKGDIR/slack-desc not adjusted?..."
+	exit 1
+fi
+if check_same $PKGDIR/README $SBO_TEMPLATES/README; then
+	echo "ERROR: README: $PKGDIR/README not modified?..."
+	exit 1
+fi
+check_info
+
+echo
+echo "Start package the scripts:"
+if [ -r $PKGDIR/files ]; then
+	FILES=($(cat $PKGDIR/files))
+	FILES=(${FILES//#/"$PKGDIR/"})
+fi
+
+could_be_files=(doinst.sh $PKGNAM.SlackBuild $PKGNAM.info slack-desc README)
+for i in $could_be_files; do
+	[ -e $PKGDIR/$i ] && FILES+=($PKGDIR/$i)
+done
+
+tar cvzf $PKGNAM.tar.gz $FILES $@
+
+echo "\n$PKGNAM.tar.gz packaged"

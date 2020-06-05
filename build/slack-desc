@@ -1,0 +1,19 @@
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.  Line
+# up the first '|' above the ':' following the base package name, and the '|' on
+# the right side marks the last column you can put a character in.  You must make
+# exactly 11 lines for the formatting to be correct.  It's also customary to
+# leave one space after the ':'.
+
+              |-----handy-ruler------------------------------------------------------|
+sbo-dev-helper: Helper scripts that ease your dev progress for SBo
+sbo-dev-helper:
+sbo-dev-helper: It have 3 scripts:
+sbo-dev-helper:     new_SlackBuild
+sbo-dev-helper:     new_pkg
+sbo-dev-helper:     update_sbo_tpl
+sbo-dev-helper:
+sbo-dev-helper: Hope they could be helpful.
+sbo-dev-helper:
+sbo-dev-helper:
+sbo-dev-helper:

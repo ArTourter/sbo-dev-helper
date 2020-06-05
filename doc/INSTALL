@@ -1,0 +1,11 @@
+There are two ways to make them "usable" on your system. One way is install
+them from a standard Slackware .txz package. You can run
+sbo-dev-helper.SlackBuild in the build/ folder which in under the top folder of
+the source. In this way, all the scripts will be installed to your /usr/bin/
+and docs to /usr/doc/sbo-dev-helper-$VERSION respectively. This can be
+convenience if you want multiple users use the scripts ;)
+
+However, the second way of installing which is more "clean" and ideal for personal
+use is untar the source ball, and then just symlink the files under bin/ to the
+top folder of the SlackBuilds you maintain. Then you can run the utilities from
+there relatively.
