@@ -1,8 +1,8 @@
 Helper scripts that ease your dev progress for SBo
 
-=====
+-----
 Usage
-=====
+-----
 
 It have:
 
@@ -20,9 +20,9 @@ Try each script with -h to see the arguments itself support.
 
 Hope they could be helpful.
 
-========
+--------
 Settings
-========
+--------
 
 In order to use these utilities, you need to set some variables to let them
 know your system configuration. You must set:
@@ -32,27 +32,27 @@ know your system configuration. You must set:
   SBO_NAME="Your Name"
   SBO_MAIL="Your@mail.address"
 
-in either ~/.sbo-dev-helver.cfg or in your ~/.profile or any thing like that.
-Note ~/.sbo-dev-helver.cfg has priority over environment settings. Meanings of
+in either ~/.sbo-dev-helper.cfg or in your ~/.profile or any thing like that.
+Note ~/.sbo-dev-helper.cfg has priority over environment settings. Meanings of
 some variables will be described below.
 
 SBO_DIR
-=======
+-------
 
 The absolute path to your local SBo repository. There should be the
 ChangeLog.txt right under it.
 
 SBO_TEMPLATES
-=============
+-------------
 
 Some of these scripts demand SBO_TEMPLATES variable which is the path to where
 you store the templates. The templates folder should have the same thing that
 http://www.slackbuilds.org/templates/ have. You can run update_sbo_tpl to
 retrive all the files.
 
-========
+--------
 Contract
-========
+--------
 
 If you have any suggestions or patches, please sent email to
 chaos.proton_at_gmail.com Thanks!

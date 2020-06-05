@@ -80,34 +80,44 @@ check_info() {
 
 set -e
 
-[ -r ~/.sbo-dev-helver.cfg ] && . ~/.sbo-dev-helver.cfg
-
-if [ -z "$SBO_TEMPLATES" ]; then
-	echo "please tell me where are the templates located with SBO_TEMPLATES variable."
-	exit 3
-fi
 if [ -z "$1" -o "$1" = '--help' -o "$1" = '-h' ]; then
 	echo "$usage"
 	exit
+fi
+
+[ -r ~/.sbo-dev-helper.cfg ] && . ~/.sbo-dev-helper.cfg
+if [ -z "$SBO_TEMPLATES" ]; then
+	echo "$usage"
+	echo
+	echo "Please tell me where are the templates located with SBO_TEMPLATES variable."
+	exit 3
 fi
 
 PKGNAM=$(basename $1)
 PKGDIR=$1
 shift
 
+# non-fatal check
+if [ -e $PKGDIR/doinst.sh ]; then
+	check_same $PKGDIR/doinst.sh $SBO_TEMPLATES/doinst.sh && \
+	echo "WARNING: $PKGDIR/doinst.sh not modified?..."
+fi
+
+# fatal check
 if check_same $PKGDIR/$PKGNAM.SlackBuild $SBO_TEMPLATES/template.SlackBuild; then
-	echo "$PKGDIR/$PKGNAM.SlackBuild not modified?..."
+	echo "ERROR: $PKGDIR/$PKGNAM.SlackBuild not modified?..."
 	exit 1
 fi
 if [ "$(cat $PKGDIR/slack-desc | md5sum -)" = \
      "$(sed -e "s/appname:/$PKGNAM:/" $SBO_TEMPLATES/slack-desc | md5sum -)" ]; then
-	echo "ERROR: slack-desc: $PKGDIR/slack-desc not adjusted?..."
+	echo "ERROR: $PKGDIR/slack-desc not adjusted?..."
 	exit 1
 fi
 if check_same $PKGDIR/README $SBO_TEMPLATES/README; then
-	echo "ERROR: README: $PKGDIR/README not modified?..."
+	echo "ERROR: $PKGDIR/README not modified?..."
 	exit 1
 fi
+
 check_info
 
 echo

@@ -3,7 +3,7 @@
 # Slackware build script for sbo-dev-helper
 
 PRGNAM=sbo-dev-helper
-VERSION=${VERSION:-0.0.4}
+VERSION=${VERSION:-0.0.5}
 ARCH=${ARCH:-noarch}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_gri}
@@ -26,8 +26,10 @@ cp -a $SOURCEDIR/bin/new_SlackBuild \
       $SOURCEDIR/bin/update_sbo_tpl \
       $SOURCEDIR/bin/diff_sbo \
       usr/bin/
-cp $SOURCEDIR/doc/README \
-   ./usr/doc/$PRGNAM-$VERSION/
+cp -a $SOURCEDIR/doc/README \
+      $SOURCEDIR/doc/Changelog \
+      $SOURCEDIR/doc/THANKS \
+      ./usr/doc/$PRGNAM-$VERSION/
 
 chown -R root:root .
 find . \

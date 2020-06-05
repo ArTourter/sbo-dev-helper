@@ -7,25 +7,26 @@ A script to establish a new SlackBuild working directory.
 pkgpath is the target directory that holds the SlackBuild, README, slack-desc,
 info file etc. The last level of pkgpath will be the name of the package. Your
 name and email address will be setup accordingly. You can also set your mail
-add.  and name in ~/.sbo-dev-helver.cfg . See more info in
+add.  and name in ~/.sbo-dev-helper.cfg . See more info in
 /usr/doc/sbo-dev-helper-*/README"
 
 set -e
 
-[ -r ~/.sbo-dev-helver.cfg ] && . ~/.sbo-dev-helver.cfg
-
-if [ -z "$SBO_TEMPLATES" ]; then
-	echo "please tell me where are the templates located with SBO_TEMPLATES variable."
-	exit 3
-fi
+[ -r ~/.sbo-dev-helper.cfg ] && . ~/.sbo-dev-helper.cfg
 
 #TODO 1: allow set more than one pkgpath at a time.
 #but do we need that?...
-[ $# -eq 0 -o $# -gt 5 ] && {echo $usage; exit 1; }
+if [ $# -eq 0 -o $# -gt 5 ]; then
+	echo "$usage"
+	echo
+	echo "Insufficient or excessive arguments."
+	exit 1
+fi
+
 while [ $# -gt 0 ]; do
 	case $1 in
 		"--help" | '-h' )
-		echo $usage
+		echo "$usage"
 		exit 0
 		;;
 		'-m' )
@@ -44,21 +45,30 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
+if [ -z "$SBO_TEMPLATES" ]; then
+	echo "$usage"
+	echo
+	echo "Please tell me where are the templates located with SBO_TEMPLATES variable."
+	exit 3
+fi
 if [[ -z "$SBO_NAME" || -z "$SBO_MAIL" ]]; then
-	echo $usage
+	echo "$usage"
+	echo
 	echo "Please let me know who you are and what your email is first ;)"
-	exit 2
+	exit 3
 fi
 if [[ -z "$PKGDIR" ]]; then
-	echo $usage
+	echo "$usage"
+	echo
 	echo "Please specify which packages you want to make."
-	exit 2
+	exit 3
 fi
 
 [[ -d $PKGDIR ]] && {echo "$PKGDIR exists"; exit 2}
 
 mkdir $PKGDIR
 cat $SBO_TEMPLATES/README > $PKGDIR/README
+cat $SBO_TEMPLATES/doinst.sh > $PKGDIR/doinst.sh
 sed -e "s/<appname>/$PKGNAM/" \
     -e "s/appname/$PKGNAM/" \
     -e "s/(your name)/$SBO_NAME/" \
@@ -69,4 +79,6 @@ sed -e "s/\".*\"/\"\"/" \
     -e "/^MAINTAINER=/s/\"\"/\"$SBO_NAME\"/" \
     -e "/^EMAIL=/s/\"\"/\"$SBO_MAIL\"/" \
     $SBO_TEMPLATES/template.info > $PKGDIR/$PKGNAM.info
-sed "s/appname:/$PKGNAM:/" $SBO_TEMPLATES/slack-desc > $PKGDIR/slack-desc
+sed -r -e "s/appname:/$PKGNAM:/" \
+       -e "s/^\ {7}\|/$(awk 'BEGIN{for(c=0;c<'${#PKGNAM}';c++) printf " "}')|/" \
+       $SBO_TEMPLATES/slack-desc > $PKGDIR/slack-desc

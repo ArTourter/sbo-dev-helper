@@ -6,13 +6,13 @@
 
 CWD=$PWD
 
+cd ..
 if [ "$1" ]; then
 	tag=$1
 	tree=$1
 else
-	tag='snapshot'
+	tag="snapshot-$(cat .git/$(cat .git/HEAD | cut -d' ' -f2) | cut -c-7)"
 	tree=HEAD
 fi
 
-cd ..
 git archive --format=tar --prefix=sbo-dev-helper-$tag/ $tree | gzip > $CWD/sbo-dev-helper-$tag.tar.gz

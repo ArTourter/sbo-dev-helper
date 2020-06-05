@@ -1,28 +1,45 @@
-#!/bin/sh
+#!/bin/zsh
 
-[ -r ~/.sbo-dev-helver.cfg ] && . ~/.sbo-dev-helver.cfg
+usage="update_sbo_tpl
 
+Synchronize the templates directory with official templates.
+
+Simple as it is, no option is needed. I will warn you if there is any
+differences and save the new file with a .new suffix in \$SBO_TEMPLATES.
+Stay tuned. ;-)"
+
+if [ "$1" = '--help' -o "$1" = '-h' ]; then
+	echo "$usage"
+	exit
+elif [ $# -ne 0 ]; then
+	echo "WARNING: no argument needed. Ignored $@"
+fi
+
+[ -r ~/.sbo-dev-helper.cfg ] && . ~/.sbo-dev-helper.cfg
 if [ -z "$SBO_TEMPLATES" ]; then
 	echo "please tell me where are the templates located with SBO_TEMPLATES variable."
 	exit 3
 fi
 
-cd $SBO_TEMPLATES
-rm -rf new
+tmp_dir=$(mktemp -d) || { echo "Cannot creat temporary dir."; exit 1 }
 
-lftp -c 'mirror http://www.slackbuilds.org/templates/ new'
+cd $tmp_dir
+lftp -c 'mirror http://www.slackbuilds.org/templates/ .'
 
-for newf in new/*; do
-	oldf=$(basename $newf)
+for newf in ./*; do
+	oldf=$SBO_TEMPLATES/$(basename $newf)
 	if [ "$(cat $oldf 2>/dev/null | md5sum -)" != "$(cat $newf 2>/dev/null | md5sum -)" ]; then
+		mv $newf $oldf.new
 		printf "\t$oldf have changed!!!\n"
 		printf "\tConsider update your SlackBuilds!\n"
-		printf "\tNew template file restored as $SBO_TEMPLATES/new/$oldf\n"
 		printf "\n"
 		dirty=1
 	else
 		rm $newf
 	fi
 done
+rmdir $tmp_dir
 
-[ "$dirty" ] && exit 1
+if [ -n "$dirty" ]; then
+	exit 1
+fi
