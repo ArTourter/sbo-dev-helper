@@ -9,37 +9,45 @@ differences and save the new file with a .new suffix in \$SBO_TEMPLATES.
 Stay tuned. ;-)"
 
 if [ "$1" = '--help' -o "$1" = '-h' ]; then
-	echo "$usage"
-	exit
+    echo "$usage"
+    exit
 elif [ $# -ne 0 ]; then
-	echo "WARNING: no argument needed. Ignored $@"
+    echo "WARNING: no argument needed. Ignored $@"
 fi
 
 [ -r ~/.sbo-dev-helper.cfg ] && . ~/.sbo-dev-helper.cfg
 if [ -z "$SBO_TEMPLATES" ]; then
-	echo "please tell me where are the templates located with SBO_TEMPLATES variable."
-	exit 3
+    echo "please tell me where are the templates located with SBO_TEMPLATES variable."
+    exit 3
 fi
 
-tmp_dir=$(mktemp -d) || { echo "Cannot creat temporary dir."; exit 1 }
+if [[ ! -d $SBO_TEMPLATES ]]; then
+    mkdir -p $SBO_TEMPLATES || { echo "Cannot create $SBO_TEMPLATES folder" || exit 1 }
+fi
+
+tmp_dir=$(mktemp -d) || { echo "Cannot create temporary dir."; exit 1 }
 
 cd $tmp_dir
 lftp -c 'mirror http://www.slackbuilds.org/templates/ .'
 
 for newf in ./*; do
-	oldf=$SBO_TEMPLATES/$(basename $newf)
-	if [ "$(cat $oldf 2>/dev/null | md5sum -)" != "$(cat $newf 2>/dev/null | md5sum -)" ]; then
-		mv $newf $oldf.new
-		printf "\t$oldf have changed!!!\n"
-		printf "\tConsider update your SlackBuilds!\n"
-		printf "\n"
-		dirty=1
-	else
-		rm $newf
-	fi
+    oldf=$SBO_TEMPLATES/$(basename $newf)
+    if [[ ! -f $oldf ]]; then
+        mv $newf $oldf
+    elif [ "$(cat $oldf 2>/dev/null | md5sum -)" != "$(cat $newf 2>/dev/null | md5sum -)" ]; then
+        mv $newf $oldf.new
+        printf "\t$oldf have changed!!!\n"
+        printf "\tConsider update your SlackBuilds!\n"
+        printf "\n"
+        dirty=1
+    else
+        rm $newf
+    fi
 done
 rmdir $tmp_dir
 
 if [ -n "$dirty" ]; then
-	exit 1
+    exit 1
 fi
+
+# vim: ts=4 sw=4 et
